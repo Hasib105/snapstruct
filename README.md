@@ -12,8 +12,8 @@ Chrome extension that scrapes the current page directly from DOM, then uses Gemi
 
 ## Supported command style
 
-- `sob company scrape koro`
-- `sob product scrape koro`
+- `scrape all companies`
+- `scrape all products`
 
 The extension maps command to intent:
 

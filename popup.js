@@ -1,7 +1,7 @@
 const KEY_STORAGE = "gemini_api_key_session";
 const MODEL_STORAGE = "gemini_model_session";
 const SEARCH_STATE_STORAGE = "last_search_state_v1";
-const DEFAULT_COMMAND = "sob company scrape koro";
+const DEFAULT_COMMAND = "scrape all companies";
 
 const apiKeyEl = document.getElementById("apiKey");
 const modelEl = document.getElementById("model");
@@ -27,8 +27,11 @@ function setExportButtonsEnabled(enabled) {
 
 function commandIntent(command) {
   const normalized = (command || "").toLowerCase();
-  if (/(product|ecom|item)/i.test(normalized) || /(পণ্য|প্রোডাক্ট)/i.test(normalized)) {
+  if (/(product|products|ecom|item|items)/i.test(normalized)) {
     return "products";
+  }
+  if (/(company|companies|business|businesses|firm|firms)/i.test(normalized)) {
+    return "companies";
   }
   return "companies";
 }
