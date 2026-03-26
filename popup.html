@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Page Scraper AI</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="app">
+      <h1>Page Scraper AI</h1>
+
+      <label for="apiKey">Gemini API Key</label>
+      <input id="apiKey" type="password" placeholder="AIza..." autocomplete="off" />
+      <p class="hint">Key is stored in extension session storage (clears on browser restart).</p>
+
+      <label for="model">Model</label>
+      <input id="model" type="text" value="gemini-3.1-flash-lite-preview" />
+
+      <label for="command">Command</label>
+      <input id="command" type="text" value="sob company scrape koro" />
+      <p class="hint">Examples: "sob company scrape koro", "sob product scrape koro"</p>
+
+      <div class="actions">
+        <button id="scrapeBtn">Scrape Current Page</button>
+        <button id="refreshBtn">Refresh</button>
+        <button id="resetBtn" class="secondary">Reset New</button>
+      </div>
+
+      <div class="actions export-actions">
+        <button id="downloadJsonBtn" disabled>Download JSON</button>
+        <button id="downloadCsvBtn" disabled>Download CSV</button>
+      </div>
+
+      <section>
+        <h2>Status</h2>
+        <pre id="status">Ready.</pre>
+      </section>
+
+      <section>
+        <h2>Preview</h2>
+        <div id="preview" class="preview"></div>
+      </section>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
