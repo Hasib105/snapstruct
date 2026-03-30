@@ -6,6 +6,7 @@
   --accent: #115e59;
   --accent-2: #0f766e;
   --border: #d9d0bf;
+  --success: #059669;
 }
 
 * {
@@ -14,8 +15,8 @@
 
 body {
   margin: 0;
-  width: 420px;
-  max-height: 620px;
+  width: 450px;
+  max-height: 650px;
   overflow: auto;
   font-family: "Segoe UI", Tahoma, sans-serif;
   background: radial-gradient(circle at top right, #fff7e6, var(--bg));
@@ -56,12 +57,25 @@ input {
   margin: 4px 0 8px;
   font-size: 11px;
   color: var(--muted);
+  line-height: 1.5;
+}
+
+.hint code {
+  background: #e8e4db;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: "Consolas", monospace;
+  font-size: 10px;
 }
 
 .actions {
   display: flex;
   gap: 8px;
   margin-top: 10px;
+}
+
+.export-actions {
+  margin-top: 8px;
 }
 
 button {
@@ -73,6 +87,7 @@ button {
   font-size: 12px;
   cursor: pointer;
   flex: 1;
+  transition: background 0.15s;
 }
 
 button:hover {
@@ -108,7 +123,7 @@ pre {
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--panel);
-  max-height: 220px;
+  max-height: 240px;
   overflow: auto;
 }
 
@@ -124,10 +139,20 @@ td {
   text-align: left;
   padding: 6px;
   vertical-align: top;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 th {
   position: sticky;
   top: 0;
   background: #fdf4df;
+  font-weight: 600;
+}
+
+td:hover {
+  white-space: normal;
+  word-break: break-word;
 }

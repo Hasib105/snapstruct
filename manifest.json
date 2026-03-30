@@ -1,12 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "Page Scraper AI (Gemini)",
-  "description": "Scrape the current page with DOM + Gemini AI and export JSON/CSV.",
-  "version": "0.1.0",
+  "name": "Lead Scraper AI",
+  "description": "Scrape leads, products, companies, customers from any page with AI. Export to JSON/CSV.",
+  "version": "0.2.0",
   "permissions": ["activeTab", "scripting", "storage", "downloads"],
   "host_permissions": ["<all_urls>", "https://generativelanguage.googleapis.com/*"],
   "action": {
-    "default_title": "Page Scraper AI",
+    "default_title": "Lead Scraper AI",
     "default_popup": "popup.html"
   },
   "content_scripts": [

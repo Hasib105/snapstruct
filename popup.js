@@ -1,7 +1,7 @@
 const KEY_STORAGE = "gemini_api_key_session";
 const MODEL_STORAGE = "gemini_model_session";
 const SEARCH_STATE_STORAGE = "last_search_state_v1";
-const DEFAULT_COMMAND = "scrape all companies";
+const DEFAULT_COMMAND = "scrape all leads";
 
 const apiKeyEl = document.getElementById("apiKey");
 const modelEl = document.getElementById("model");
@@ -27,45 +27,101 @@ function setExportButtonsEnabled(enabled) {
 
 function commandIntent(command) {
   const normalized = (command || "").toLowerCase();
-  if (/(product|products|ecom|item|items)/i.test(normalized)) {
+  
+  // Leads / People / Contacts
+  if (/(lead|leads|people|person|persons|contact|contacts|founder|ceo|executive|professionals?)/i.test(normalized)) {
+    return "leads";
+  }
+  // Products
+  if (/(product|products|ecom|item|items|listing|listings)/i.test(normalized)) {
     return "products";
   }
-  if (/(company|companies|business|businesses|firm|firms)/i.test(normalized)) {
+  // Companies / Businesses
+  if (/(company|companies|business|businesses|firm|firms|organization|organizations|startup|startups)/i.test(normalized)) {
     return "companies";
   }
-  return "companies";
+  // Customers / Orders
+  if (/(customer|customers|order|orders|buyer|buyers|client|clients)/i.test(normalized)) {
+    return "customers";
+  }
+  // Jobs
+  if (/(job|jobs|position|positions|career|careers|opening|openings|vacancy|vacancies)/i.test(normalized)) {
+    return "jobs";
+  }
+  
+  return "leads"; // Default to leads for LinkedIn-style pages
+}
+
+function getFieldsForIntent(intent) {
+  switch (intent) {
+    case "leads":
+      return ["name", "title", "company", "email", "phone", "location", "linkedinUrl", "twitterUrl", "website", "followers"];
+    case "products":
+      return ["title", "price", "originalPrice", "rating", "reviews", "availability", "image", "productUrl"];
+    case "companies":
+      return ["companyName", "address", "phone", "email", "website", "rating", "reviews", "industry"];
+    case "customers":
+      return ["name", "email", "phone", "address", "orderId", "date", "amount"];
+    case "jobs":
+      return ["jobTitle", "company", "location", "salary", "jobType", "posted", "jobUrl"];
+    default:
+      return ["title", "text", "phone", "email", "price", "rating", "location", "website"];
+  }
 }
 
 function buildPrompt(intent, payload, command) {
-  const targetFields =
-    intent === "products"
-      ? ["title", "price", "image", "rating", "website"]
-      : ["company_name", "address", "phone", "website"];
+  const targetFields = getFieldsForIntent(intent);
+  const platform = payload?.page?.platform || "generic";
 
-  return `You are an extraction engine.
-User command: ${command}
-Intent: ${intent}
+  return `You are a data extraction engine specialized in extracting structured data from web pages.
 
-Task:
-1) Read the candidate items from current webpage.
-2) Produce clean structured records.
-3) Keep only meaningful records.
-4) If a field is unknown, use empty string.
-5) Do not hallucinate data not present in candidates.
+User Command: "${command}"
+Detected Intent: ${intent}
+Source Platform: ${platform}
+Page URL: ${payload?.page?.url || "unknown"}
 
-Expected output format: STRICT JSON only, no markdown.
-Schema:
+TASK:
+Extract ALL relevant ${intent} from the provided candidate data. Be thorough - capture every valid record.
+
+EXTRACTION RULES:
+1. Extract ONLY data that exists in the candidates - never invent or hallucinate information
+2. For each record, fill in as many fields as possible from the source data
+3. Use empty string "" for unknown/missing fields
+4. Clean and normalize data (trim whitespace, fix obvious formatting issues)
+5. Remove duplicates based on primary identifiers (name+company for leads, title+price for products)
+6. Keep ALL valid records - do not filter out entries with partial data
+
+FIELD MAPPINGS FOR ${intent.toUpperCase()}:
+${targetFields.map(f => `- ${f}: Extract from candidate data if available`).join("\n")}
+
+SPECIAL INSTRUCTIONS FOR ${platform.toUpperCase()}:
+${platform === "linkedin" ? `
+- Extract full name from profile titles
+- Parse "Title at Company" patterns
+- Capture follower counts (e.g., "710+ followers")
+- Extract location (City, State/Country)
+- Get LinkedIn profile URLs
+` : ""}
+${platform === "google_search" ? `
+- Extract business names from result titles
+- Parse addresses and phone numbers from snippets
+- Get website URLs from result links
+` : ""}
+
+OUTPUT FORMAT (STRICT JSON - no markdown, no explanation):
 {
   "intent": "${intent}",
+  "platform": "${platform}",
   "detectedFields": ${JSON.stringify(targetFields)},
   "records": [
-    {}
+    { /* one object per extracted ${intent.slice(0, -1) || "record"} */ }
   ],
-  "confidence": 0.0
+  "totalExtracted": <number>,
+  "confidence": <0.0-1.0>
 }
 
-Candidates JSON:
-${JSON.stringify(payload).slice(0, 120000)}
+CANDIDATE DATA:
+${JSON.stringify(payload, null, 0).slice(0, 120000)}
 `;
 }
 
@@ -88,29 +144,96 @@ function parseJsonFromText(text) {
 }
 
 function fallbackStructure(intent, candidates) {
-  const records = (candidates?.items || []).slice(0, 40).map((item) => {
-    if (intent === "products") {
-      return {
-        title: item.title || "",
-        price: item.priceGuess || "",
-        image: item.imageGuess || "",
-        rating: item.ratingGuess || "",
-        website: item.websiteGuess || ""
-      };
+  const items = candidates?.items || [];
+  const targetFields = getFieldsForIntent(intent);
+  
+  const records = items.slice(0, 60).map((item) => {
+    const record = {};
+    
+    // Map candidate fields to target fields based on intent
+    switch (intent) {
+      case "leads":
+        record.name = item.name || item.title || "";
+        record.title = item.title || "";
+        record.company = item.company || "";
+        record.email = item.email || "";
+        record.phone = item.phone || item.phoneGuess || "";
+        record.location = item.location || "";
+        record.linkedinUrl = item.linkedinUrl || item.profileUrl || "";
+        record.twitterUrl = item.twitterUrl || "";
+        record.website = item.website || item.websiteGuess || "";
+        record.followers = item.followers || "";
+        break;
+        
+      case "products":
+        record.title = item.title || "";
+        record.price = item.price || item.priceGuess || "";
+        record.originalPrice = item.originalPrice || "";
+        record.rating = item.rating || item.ratingGuess || "";
+        record.reviews = item.reviews || "";
+        record.availability = item.availability || "";
+        record.image = item.image || item.imageGuess || "";
+        record.productUrl = item.productUrl || item.websiteGuess || "";
+        break;
+        
+      case "companies":
+        record.companyName = item.companyName || item.title || "";
+        record.address = item.address || item.addressGuess || "";
+        record.phone = item.phone || item.phoneGuess || "";
+        record.email = item.email || "";
+        record.website = item.website || item.websiteGuess || "";
+        record.rating = item.rating || item.ratingGuess || "";
+        record.reviews = item.reviews || "";
+        record.industry = item.industry || "";
+        break;
+        
+      case "customers":
+        record.name = item.name || item.title || "";
+        record.email = item.email || "";
+        record.phone = item.phone || item.phoneGuess || "";
+        record.address = item.address || item.addressGuess || "";
+        record.orderId = item.orderId || "";
+        record.date = item.date || "";
+        record.amount = item.amount || item.priceGuess || "";
+        break;
+        
+      case "jobs":
+        record.jobTitle = item.jobTitle || item.title || "";
+        record.company = item.company || "";
+        record.location = item.location || "";
+        record.salary = item.salary || "";
+        record.jobType = item.jobType || "";
+        record.posted = item.posted || "";
+        record.jobUrl = item.jobUrl || item.websiteGuess || "";
+        break;
+        
+      default:
+        record.title = item.title || "";
+        record.text = item.text || item.description || "";
+        record.phone = item.phone || item.phoneGuess || "";
+        record.email = item.email || "";
+        record.price = item.price || item.priceGuess || "";
+        record.rating = item.rating || item.ratingGuess || "";
+        record.location = item.location || "";
+        record.website = item.website || item.websiteGuess || "";
     }
-    return {
-      company_name: item.title || "",
-      address: item.addressGuess || "",
-      phone: item.phoneGuess || "",
-      website: item.websiteGuess || ""
-    };
+    
+    return record;
+  });
+
+  // Filter out empty records
+  const validRecords = records.filter(record => {
+    const values = Object.values(record).filter(v => v && String(v).trim());
+    return values.length >= 2; // At least 2 non-empty fields
   });
 
   return {
     intent,
-    detectedFields: intent === "products" ? ["title", "price", "image", "rating", "website"] : ["company_name", "address", "phone", "website"],
-    records,
-    confidence: 0.35
+    platform: candidates?.page?.platform || "generic",
+    detectedFields: targetFields,
+    records: validRecords,
+    totalExtracted: validRecords.length,
+    confidence: 0.4
   };
 }
 
@@ -120,8 +243,8 @@ async function getActiveTab() {
   return tabs[0];
 }
 
-async function collectFromCurrentPage(tabId) {
-  const response = await chrome.tabs.sendMessage(tabId, { action: "COLLECT_CANDIDATES" });
+async function collectFromCurrentPage(tabId, dataType) {
+  const response = await chrome.tabs.sendMessage(tabId, { action: "COLLECT_CANDIDATES", dataType });
   if (!response?.ok) {
     throw new Error(response?.error || "Failed to collect candidates from page.");
   }
@@ -292,23 +415,28 @@ async function handleScrape() {
   try {
     await saveSessionSettings();
 
-    setStatus("Reading DOM from current page...");
+    setStatus(`Scanning page for ${intent}...`);
     const tab = await getActiveTab();
-    const candidates = await collectFromCurrentPage(tab.id);
+    const candidates = await collectFromCurrentPage(tab.id, intent);
 
-    setStatus(`DOM captured (${candidates?.items?.length || 0} candidates). Running Gemini...`);
+    const platform = candidates?.page?.platform || "generic";
+    setStatus(`Found ${candidates?.items?.length || 0} candidates on ${platform}. Processing with AI...`);
     const prompt = buildPrompt(intent, candidates, command);
 
     let structured;
     try {
       structured = await callGemini({ apiKey, model, prompt });
     } catch (modelError) {
-      setStatus(`Gemini failed, using fallback parser. Reason: ${modelError.message}`);
+      setStatus(`AI processing failed, using fallback. Reason: ${modelError.message}`);
       structured = fallbackStructure(intent, candidates);
     }
 
     const finalResult = {
-      meta: candidates.page,
+      meta: {
+        ...candidates.page,
+        command,
+        intent
+      },
       ...structured
     };
 
@@ -316,7 +444,7 @@ async function handleScrape() {
     renderPreview(finalResult);
 
     const count = finalResult.records?.length || 0;
-    const message = `Done. Extracted ${count} records as structured table + JSON. Intent: ${finalResult.intent}.`;
+    const message = `✓ Extracted ${count} ${intent}. Platform: ${platform}. Confidence: ${(finalResult.confidence * 100).toFixed(0)}%`;
     setStatus(message);
     await saveSearchState({ statusText: message });
 

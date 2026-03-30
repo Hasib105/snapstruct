@@ -3,42 +3,49 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Page Scraper AI</title>
+    <title>Lead Scraper AI</title>
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
     <main class="app">
-      <h1>Page Scraper AI</h1>
+      <h1>🔍 Lead Scraper AI</h1>
 
       <label for="apiKey">Gemini API Key</label>
       <input id="apiKey" type="password" placeholder="AIza..." autocomplete="off" />
-      <p class="hint">Key is stored in extension session storage (clears on browser restart).</p>
+      <p class="hint">Key is stored in session (clears on browser restart).</p>
 
       <label for="model">Model</label>
       <input id="model" type="text" value="gemini-3.1-flash-lite-preview" />
 
-      <label for="command">Command</label>
-      <input id="command" type="text" value="scrape all companies" />
-      <p class="hint">Examples: "scrape all companies", "scrape all products"</p>
+      <label for="command">What to Scrape</label>
+      <input id="command" type="text" value="scrape all leads" />
+      <p class="hint">
+        <strong>Commands:</strong><br>
+        • <code>scrape all leads</code> - People with name, title, company, contact<br>
+        • <code>scrape all products</code> - Products with price, rating, reviews<br>
+        • <code>scrape all companies</code> - Businesses with address, phone, website<br>
+        • <code>scrape all customers</code> - Customer orders and contact info<br>
+        • <code>scrape all jobs</code> - Job listings with salary, location
+      </p>
 
       <div class="actions">
-        <button id="scrapeBtn">Scrape Current Page</button>
-        <button id="refreshBtn">Refresh</button>
-        <button id="resetBtn" class="secondary">Reset New</button>
+        <button id="scrapeBtn">🚀 Scrape Page</button>
+        <button id="refreshBtn">🔄 Refresh</button>
+        <button id="resetBtn" class="secondary">✕ Reset</button>
       </div>
 
       <div class="actions export-actions">
-        <button id="downloadJsonBtn" disabled>Download JSON</button>
-        <button id="downloadCsvBtn" disabled>Download CSV</button>
+        <button id="downloadJsonBtn" disabled>📄 Download JSON</button>
+        <button id="downloadCsvBtn" disabled>📊 Download CSV</button>
       </div>
 
       <section>
         <h2>Status</h2>
-        <pre id="status">Ready.</pre>
+        <pre id="status">Ready. Navigate to a page with data to scrape.</pre>
       </section>
 
       <section>
-        <h2>Preview</h2>
+        <h2>Preview (first 20 rows)</h2>
         <div id="preview" class="preview"></div>
       </section>
     </main>
