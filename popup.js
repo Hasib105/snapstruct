@@ -1,5 +1,5 @@
-const KEY_STORAGE = "gemini_api_key_session";
-const MODEL_STORAGE = "gemini_model_session";
+const KEY_STORAGE = "gemini_api_key_local";
+const MODEL_STORAGE = "gemini_model_local";
 const SEARCH_STATE_STORAGE = "last_search_state_v1";
 const DEFAULT_COMMAND = "scrape all leads";
 
@@ -346,16 +346,16 @@ function downloadTextFile(filename, text, mimeType) {
   });
 }
 
-async function saveSessionSettings() {
+async function saveLocalSettings() {
   const payload = {
     [KEY_STORAGE]: apiKeyEl.value.trim(),
     [MODEL_STORAGE]: modelEl.value.trim() || "gemini-3.1-flash-lite-preview"
   };
-  await chrome.storage.session.set(payload);
+  await chrome.storage.local.set(payload);
 }
 
-async function loadSessionSettings() {
-  const data = await chrome.storage.session.get([KEY_STORAGE, MODEL_STORAGE]);
+async function loadLocalSettings() {
+  const data = await chrome.storage.local.get([KEY_STORAGE, MODEL_STORAGE]);
   if (data[KEY_STORAGE]) apiKeyEl.value = data[KEY_STORAGE];
   if (data[MODEL_STORAGE]) modelEl.value = data[MODEL_STORAGE];
 }
@@ -413,7 +413,7 @@ async function handleScrape() {
   setExportButtonsEnabled(false);
 
   try {
-    await saveSessionSettings();
+    await saveLocalSettings();
 
     setStatus(`Scanning page for ${intent}...`);
     const tab = await getActiveTab();
@@ -481,7 +481,7 @@ async function saveCommandDraft() {
 }
 
 async function initPopup() {
-  await loadSessionSettings();
+  await loadLocalSettings();
   await loadSearchState();
 
   if (!latestResult?.records?.length) {
@@ -515,8 +515,8 @@ downloadCsvBtn.addEventListener("click", () => {
   downloadTextFile(`scrape-${stamp}.csv`, csv, "text/csv");
 });
 
-apiKeyEl.addEventListener("change", saveSessionSettings);
-modelEl.addEventListener("change", saveSessionSettings);
+apiKeyEl.addEventListener("change", saveLocalSettings);
+modelEl.addEventListener("change", saveLocalSettings);
 commandEl.addEventListener("change", () => {
   saveCommandDraft().catch((error) => {
     setStatus(`Warning: could not save command state: ${error.message}`);
